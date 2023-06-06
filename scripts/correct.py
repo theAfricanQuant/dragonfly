@@ -41,12 +41,12 @@ args = parser.parse_args()
 
 for filename in [args.input, args.transform]:
     if not os.path.exists(filename):
-        sys.exit("Error: {} does not exist".format(filename))
+        sys.exit(f"Error: {filename} does not exist")
 
 if not os.path.exists(args.output):
     os.makedirs(args.output)
 elif not os.path.isdir(args.output):
-    sys.exit("Error: {} must be a directory".format(args.output))
+    sys.exit(f"Error: {args.output} must be a directory")
 
 if os.path.isdir(args.input):
     filenames = [x for x in glob.glob(os.path.join(args.input, "*")) if os.path.isfile(x)]
@@ -79,14 +79,11 @@ class Transform(object):
             if self.change == 'O':
                 row[TAG] = self.change
             else:
-                if count == 0:
-                    row[TAG] = "B-" + self.change
-                else:
-                    row[TAG] = "I-" + self.change
+                row[TAG] = f"B-{self.change}" if count == 0 else f"I-{self.change}"
                 count += 1
 
     def __repr__(self):
-        return "Transform({}: {})".format(self.string, self.change)
+        return f"Transform({self.string}: {self.change})"
 
     @staticmethod
     def key_from_string(string):
@@ -105,7 +102,7 @@ with open(args.transform, 'r') as fp:
         if len(row) == 2:
             transforms[Transform.key_from_string(row[TOKEN])] = Transform(row)
         elif len(row) != 0:
-            print("Unexpected row {}".format(row))
+            print(f"Unexpected row {row}")
 
 # process each file, writing out as the original is read in
 changes_count = 0
@@ -153,7 +150,7 @@ for filename in filenames:
                 for r in tag_rows:
                     writer.writerow(r)
 
-print("{} files processed".format(len(filenames)))
-print("{} changes".format(changes_count))
+print(f"{len(filenames)} files processed")
+print(f"{changes_count} changes")
 for transform in transforms.values():
-    print("{}: {}".format(transform.string, transform.apply_count))
+    print(f"{transform.string}: {transform.apply_count}")

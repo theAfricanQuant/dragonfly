@@ -14,4 +14,4 @@ if __name__ == '__main__':
     try:
         cli.adjudicate()
     except RuntimeError as e:
-        print("Error: {}".format(str(e)))
+        print(f"Error: {str(e)}")

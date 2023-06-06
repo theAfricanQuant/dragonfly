@@ -66,13 +66,12 @@ class InvertedIndex:
 
     def get_doc_count(self, word):
         word = word.lower()
-        if word in self._index.index:
-            if 'doc_count' not in self._index.get(word):
-                raise RuntimeError("Search index needs to be rebuilt. "
-                                   "Delete inverted index in dataset's .dragonfly directory and restart")
-            return self._index.get(word)['doc_count']
-        else:
+        if word not in self._index.index:
             return 0
+        if 'doc_count' not in self._index.get(word):
+            raise RuntimeError("Search index needs to be rebuilt. "
+                               "Delete inverted index in dataset's .dragonfly directory and restart")
+        return self._index.get(word)['doc_count']
 
     def add(self, filename, sentences, transliterations):
         """
@@ -101,12 +100,10 @@ class InvertedIndex:
         results = {'terms': set(), 'count': 0, 'refs': []}
         if wildcards:
             results = self._retrieve_with_wildcards(term)
-        else:
-            entry = self._index.get(term)
-            if entry:
-                results['terms'].add(term)
-                results['count'] = entry['count']
-                results['refs'] = entry['refs']
+        elif entry := self._index.get(term):
+            results['terms'].add(term)
+            results['count'] = entry['count']
+            results['refs'] = entry['refs']
         return results
 
     def _retrieve_with_wildcards(self, term):
@@ -154,11 +151,10 @@ class LocalSearch:
         """
         if build and not self._index_exists():
             self.build_index(bg)
+        elif bg:
+            self.executor.submit(self._load_index)
         else:
-            if bg:
-                self.executor.submit(self._load_index)
-            else:
-                self._load_index()
+            self._load_index()
 
     def build_index(self, bg=False):
         """
@@ -250,7 +246,7 @@ class GeonamesSearch:
         self.url = 'http://api.geonames.org/search?q={}&fuzzy={}&username={}&maxRows=20&type=json'
         if countries:
             for country in countries:
-                self.url += '&country=' + country
+                self.url += f'&country={country}'
 
     def retrieve(self, term, fuzzy=0.8):
         """
@@ -264,7 +260,7 @@ class GeonamesSearch:
             response.raise_for_status()
             return response.json()
         except Exception as err:
-            logger.warning('Error occurred: {}'.format(err))
+            logger.warning(f'Error occurred: {err}')
             return None
 
 
@@ -312,12 +308,8 @@ class DictionarySearch:
             index = self.english_index
         elif column == self.TRANS:
             index = self.trans_index
-        matches = fnmatch.filter(index.keys(), term.lower() + '*')
-        results = []
-        for match in matches:
-            results.append(match)
-        results.sort()
-        return results
+        matches = fnmatch.filter(index.keys(), f'{term.lower()}*')
+        return sorted(matches)
 
     def _load(self):
         self.loaded = True
@@ -398,10 +390,7 @@ class DocumentStats:
 
     def get_tfidf(self, word):
         word = word.lower()
-        if word in self.tfidf:
-            return self.tfidf[word]
-        else:
-            return 0
+        return self.tfidf[word] if word in self.tfidf else 0
 
     def get_idf(self, word):
         try:
@@ -414,7 +403,7 @@ class DocumentStats:
         self.word_counts = collections.Counter()
         for sentence in self.document.sentences:
             for word in sentence.rows[Sentence.TOKEN].strings:
-                self.word_counts.update({word.lower(): 1})
+                self.word_counts[word.lower()] = 1
         self.tfidf = {}
         for word in self.word_counts:
             try:

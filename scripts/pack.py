@@ -27,7 +27,7 @@ parser.add_argument("min_tokens", help="minimum number of tokens per file", type
 args = parser.parse_args()
 
 if not os.path.isdir(args.input):
-    sys.exit("Error: {} does not exist".format(args.input))
+    sys.exit(f"Error: {args.input} does not exist")
 
 if not os.path.exists(args.output):
     os.makedirs(args.output)
@@ -40,15 +40,15 @@ metadata = {}
 for filename in sorted(glob.glob(os.path.join(args.input, "*.txt"))):
     # grab first 6 characters: IL6_NW
     if basename is None:
-        basename = os.path.basename(filename)[0:6]
+        basename = os.path.basename(filename)[:6]
 
     with open(filename, 'r') as ifp:
-        new_lines = [x for x in ifp]
+        new_lines = list(ifp)
         # must have an empty line at end of file
         if len(new_lines[-1].split('\t')) > 2:
             new_lines.append('\n')
         # remove tsv header after first file
-        if len(lines) > 0 and new_lines[0][0:5] == 'TOKEN':
+        if len(lines) > 0 and new_lines[0][:5] == 'TOKEN':
             del new_lines[0]
         num_lines = len(new_lines)
         # we don't write out header to annotation file

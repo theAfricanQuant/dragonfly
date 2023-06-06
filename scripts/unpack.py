@@ -26,7 +26,7 @@ parser.add_argument("output", help="output directory to unpack the annotations")
 args = parser.parse_args()
 
 if not os.path.isdir(args.input):
-    sys.exit("Error: {} does not exist".format(args.input))
+    sys.exit(f"Error: {args.input} does not exist")
 
 if not os.path.exists(args.output):
     os.makedirs(args.output)
@@ -40,10 +40,10 @@ with open(os.path.join(metadata_dir, '.metadata'), 'r') as mfp:
 for filename in sorted(glob.glob(os.path.join(args.input, "*.anno"))):
     orig_filename = filename.replace('.anno', '')
     with open(filename, 'r') as ifp:
-        lines = [x for x in ifp]
+        lines = list(ifp)
         for data in metadata[os.path.basename(orig_filename)]:
             new_filename = os.path.join(args.output, data['filename'] + '.anno')
-            new_lines = lines[0:data['num_lines']]
+            new_lines = lines[:data['num_lines']]
             del lines[:data['num_lines']]
             with open(new_filename, 'w') as ofp:
                 ofp.writelines(new_lines)

@@ -34,9 +34,11 @@ parser.add_argument("-d", "--dictionary", help="path to a specific dictionary js
 args = parser.parse_args()
 
 args.lang = args.lang.lower()
-output_filename = "{}.tsv".format(args.lang)
+output_filename = f"{args.lang}.tsv"
 if os.path.exists(output_filename) and not args.force:
-    sys.exit("Error: {} already exists. Run with -f to force it to overwrite".format(output_filename))
+    sys.exit(
+        f"Error: {output_filename} already exists. Run with -f to force it to overwrite"
+    )
 
 if args.dictionary:
     num_items = translations.TranslationDictManager.export_external(args.dictionary, output_filename)
@@ -44,4 +46,4 @@ else:
     home_dir = os.path.join(os.path.expanduser("~"), '.dragonfly')
     tdm = translations.TranslationDictManager(home_dir)
     num_items = tdm.export(args.lang, output_filename)
-print("Exported {} items".format(num_items))
+print(f"Exported {num_items} items")

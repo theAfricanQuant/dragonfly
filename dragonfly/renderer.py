@@ -16,8 +16,7 @@ class AnnotateAttacher:
     """
     def attach(self, document, output_path, filename):
         loader = AnnotationLoader(output_path)
-        annotations_filename = loader.get(filename)
-        if annotations_filename:
+        if annotations_filename := loader.get(filename):
             document.attach_annotations(InputReader(annotations_filename).sentences)
 
 
@@ -31,21 +30,18 @@ class AdjudicateAttacher:
     def attach(self, document, output_path, filename):
         # todo How to handle partially complete dir of adjudicated files
         loader = AnnotationLoader(output_path)
-        annotations_filename = loader.get(filename)
-        if annotations_filename:
+        if annotations_filename := loader.get(filename):
             document.attach_annotations(InputReader(annotations_filename).sentences)
         else:
             display_annotation_dir = self.annotations_dirs[0]
             loader = AnnotationLoader(display_annotation_dir)
-            annotations_filename = loader.get(filename)
-            if annotations_filename:
+            if annotations_filename := loader.get(filename):
                 document.attach_annotations(InputReader(annotations_filename).sentences)
 
         self.annotations_dirs.reverse()
         for annotations_dir in self.annotations_dirs:
             loader = AnnotationLoader(annotations_dir)
-            annotations_filename = loader.get(filename)
-            if annotations_filename:
+            if annotations_filename := loader.get(filename):
                 name = os.path.basename(os.path.abspath(annotations_dir))
                 document.attach_adj_annotations(name, InputReader(annotations_filename).sentences)
 
@@ -61,7 +57,7 @@ class DocumentRenderer:
         lister = app.config.get('dragonfly.input')
         output_path = app.config.get('dragonfly.output')
         suggest = app.config.get('dragonfly.suggest')
-        single_file = True if filename else False
+        single_file = bool(filename)
 
         settings = app.locator.settings
         lister.reload()
@@ -85,8 +81,7 @@ class DocumentRenderer:
         self.attacher.attach(document, output_path, filename)
 
         trans_loader = EnglishTranslationLoader(lister.path)
-        translation = trans_loader.get(filename)
-        if translation:
+        if translation := trans_loader.get(filename):
             document.attach_translation(translation)
 
         marker_manager = SentenceMarkerManager(app.config.get('dragonfly.local_md_dir'))
@@ -124,7 +119,5 @@ class DocumentRenderer:
         index = int(index) if index is not None else 0
         if index not in lister:
             return None, None
-        next_index = None
-        if lister.has_next(index):
-            next_index = index + 1
+        next_index = index + 1 if lister.has_next(index) else None
         return index, next_index

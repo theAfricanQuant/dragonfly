@@ -33,10 +33,10 @@ parser.add_argument("-f", "--force", help="force an overwrite of existing entrie
 args = parser.parse_args()
 
 if not os.path.exists(args.filename):
-    sys.exit("Error: {} does not exist".format(args.filename))
+    sys.exit(f"Error: {args.filename} does not exist")
 
 args.lang = args.lang.lower()
 home_dir = os.path.join(os.path.expanduser("~"), '.dragonfly')
 tdm = translations.TranslationDictManager(home_dir)
 num_items = tdm.import_tsv(args.lang, args.filename, args.force)
-print("Imported {} items".format(num_items))
+print(f"Imported {num_items} items")

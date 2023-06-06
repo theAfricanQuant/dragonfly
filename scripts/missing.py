@@ -33,7 +33,7 @@ args = parser.parse_args()
 
 for filename in [args.input]:
     if not os.path.exists(filename):
-        sys.exit("Error: {} does not exist".format(filename))
+        sys.exit(f"Error: {filename} does not exist")
 
 if os.path.isdir(args.input):
     filenames = sorted([x for x in glob.glob(os.path.join(args.input, "*")) if os.path.isfile(x)])
@@ -83,23 +83,23 @@ class PhraseHistogram(object):
     def write(self, filename):
         with open(filename, 'w') as fp:
             for phrase, count in self.phrases.most_common():
-                fp.write("{}\t\t{}\n".format(phrase, count))
+                fp.write(f"{phrase}\t\t{count}\n")
 
 
 # load translation dictionary
 trans_dict = {}
 if args.dict:
     if not os.path.exists(args.dict):
-        sys.exit("Error: dict {} does not exist".format(args.dict))
+        sys.exit(f"Error: dict {args.dict} does not exist")
     with open(args.dict, 'r') as fp:
         reader = csv.reader(fp, delimiter='\t', quoting=csv.QUOTE_NONE)
         for row in reader:
             trans_dict[row[0].strip().lower()] = row[1].strip()
 else:
     ls_dir = os.path.join(os.path.expanduser("~"), '.dragonfly')
-    args.dict = os.path.join(ls_dir, args.lang + '.json')
+    args.dict = os.path.join(ls_dir, f'{args.lang}.json')
     if not os.path.exists(args.dict):
-        sys.exit("Error: dict {} does not exist".format(args.dict))
+        sys.exit(f"Error: dict {args.dict} does not exist")
     with open(args.dict, 'r') as fp:
         trans_dict = json.load(fp)
 
@@ -115,44 +115,40 @@ for filename in filenames:
         in_phrase = False
         phrase_rows = []
         phrase_last_index = -1
-        rows = [row for row in reader]
-        for i in range(len(rows)):
+        rows = list(reader)
+        for row_ in rows:
             if in_phrase:
                 # end of sentence ends the phrase
-                if not rows[i] or not rows[i][TOKEN] or not rows[i][TAG]:
+                if not row_ or not row_[TOKEN] or not row_[TAG]:
                     in_phrase = False
                     if phrase_last_index >= 0:
-                        stats[filename].append(phrase_rows[0:phrase_last_index+1])
+                        stats[filename].append(phrase_rows[:phrase_last_index+1])
                     continue
                 # entering a tagged entity ends the phrase
-                if len(rows[i][TAG]) > 1:
+                if len(row_[TAG]) > 1:
                     in_phrase = False
                     if phrase_last_index >= 0:
-                        stats[filename].append(phrase_rows[0:phrase_last_index + 1])
+                        stats[filename].append(phrase_rows[:phrase_last_index + 1])
                     continue
-                phrase_rows.append(rows[i][TOKEN])
+                phrase_rows.append(row_[TOKEN])
                 (in_dict, terminal) = tree.check(phrase_rows)
                 if in_dict:
                     if terminal:
                         phrase_last_index = len(phrase_rows) - 1
-                # no longer in dictionary ends the phrase
                 else:
                     in_phrase = False
                     if phrase_last_index >= 0:
-                        stats[filename].append(phrase_rows[0:phrase_last_index + 1])
+                        stats[filename].append(phrase_rows[:phrase_last_index + 1])
             else:
-                if not rows[i] or not rows[i][TOKEN] or not rows[i][TAG]:
+                if not row_ or not row_[TOKEN] or not row_[TAG]:
                     continue
 
                 # must be non-tag to start a phrase
-                if len(rows[i][TAG]) == 1:
-                    phrase_rows = [rows[i][TOKEN]]
+                if len(row_[TAG]) == 1:
+                    phrase_rows = [row_[TOKEN]]
                     (in_dict, terminal) = tree.check(phrase_rows)
                     if in_dict:
                         in_phrase = True
-                        phrase_last_index = -1
-                        if terminal:
-                            phrase_last_index = 0
-
+                        phrase_last_index = 0 if terminal else -1
 for doc in sorted(stats.keys()):
-    print("{}\t\t{}".format(doc, ', '.join([' '.join(x) for x in stats[doc]])))
+    print(f"{doc}\t\t{', '.join([' '.join(x) for x in stats[doc]])}")

@@ -56,7 +56,7 @@ class TranslationDictManager:
 
     def get_filename(self, lang):
         lang = lang.lower()
-        return os.path.join(self.base_dir, lang + '.json')
+        return os.path.join(self.base_dir, f'{lang}.json')
 
     def export(self, lang, filename):
         trans_dict = self.get(lang)
@@ -96,17 +96,11 @@ class TranslationDictManager:
             reader = csv.reader(fp, delimiter='\t', quoting=csv.QUOTE_NONE)
             for row in reader:
                 if len(row) == 2:
-                    if row[PHRASE] not in trans_dict:
-                        count += 1
-                        trans_dict[row[PHRASE]] = [row[TRANS], '']
-                    elif force:
+                    if row[PHRASE] not in trans_dict or force:
                         count += 1
                         trans_dict[row[PHRASE]] = [row[TRANS], '']
                 elif len(row) == 3:
-                    if row[PHRASE] not in trans_dict:
-                        count += 1
-                        trans_dict[row[PHRASE]] = [row[TRANS], row[TYPE]]
-                    elif force:
+                    if row[PHRASE] not in trans_dict or force:
                         count += 1
                         trans_dict[row[PHRASE]] = [row[TRANS], row[TYPE]]
                 else:

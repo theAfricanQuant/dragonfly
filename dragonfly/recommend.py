@@ -68,8 +68,7 @@ class Recommender:
         return self._list
 
     def get_latest(self, include_complete=False):
-        name = self._get_latest()
-        if name:
+        if name := self._get_latest():
             return self.get(name, include_complete)
         else:
             return self.get(self.DEFAULT, include_complete)
@@ -101,17 +100,13 @@ class Recommender:
                 if config.news_only and self.NEWS_ID not in filename:
                     continue
                 reader = csv.reader(fp, delimiter='\t', quoting=csv.QUOTE_NONE)
-                for row in reader:
-                    # sentence separator
-                    if len(row) < 1:
-                        continue
-                    tokens.append(row[0].lower())
+                tokens.extend(row[0].lower() for row in reader if len(row) >= 1)
             for word in config_words:
                 matches = fnmatch.filter(tokens, word)
                 score += len(matches)
             if not config.exact_match:
                 for word in config_words:
-                    matches = fnmatch.filter(tokens, word + '*')
+                    matches = fnmatch.filter(tokens, f'{word}*')
                     score += (len(matches) / 2)
             score /= len(tokens)
             score *= 100
@@ -121,7 +116,7 @@ class Recommender:
             items.append(item)
         items.sort(key=lambda x: x.score, reverse=True)
         rec = Recommendation(name, config, items)
-        rec_filename = os.path.join(self.rec_dir, name + '.rec')
+        rec_filename = os.path.join(self.rec_dir, f'{name}.rec')
         with open(rec_filename, 'wb') as fp:
             pickle.dump(rec, fp)
         self._list = []
@@ -178,7 +173,7 @@ class Recommender:
             rec = Recommendation(name, RecommendConfig.get_empty(), items)
         else:
             try:
-                with open(os.path.join(self.rec_dir, name + '.rec'), 'rb') as fp:
+                with open(os.path.join(self.rec_dir, f'{name}.rec'), 'rb') as fp:
                     rec = pickle.load(fp)
             except FileNotFoundError:
                 logger.warning('Recommendation %s not found', name)
@@ -191,11 +186,7 @@ class Recommender:
 
     @staticmethod
     def _penalize_score(score, num_sentences):
-        if num_sentences > 20:
-            # score divided in half when 50 sentences
-            return score / (1 + (num_sentences - 20) / 30)
-        else:
-            return score
+        return score / (1 + (num_sentences - 20) / 30) if num_sentences > 20 else score
 
 
 class TaggedTokenFrequencies:
@@ -260,12 +251,14 @@ class TaggedTokenFrequencies:
         if self.corpus_data is None:
             self.corpus_data = self._load_corpus_data()
         word = word.lower()
-        if word in self.corpus_data.counts and word in self.corpus_data.tagged_counts:
-            try:
-                return self.corpus_data.tagged_counts[word] / self.corpus_data.counts[word]
-            except ZeroDivisionError:
-                return 0
-        else:
+        if (
+            word not in self.corpus_data.counts
+            or word not in self.corpus_data.tagged_counts
+        ):
+            return 0
+        try:
+            return self.corpus_data.tagged_counts[word] / self.corpus_data.counts[word]
+        except ZeroDivisionError:
             return 0
 
     def _load_corpus_data(self):
@@ -297,7 +290,7 @@ class TaggedTokenFrequencies:
             pickle.dump(data, fp)
 
     def _process_sentence(self, sentence, data):
-        if set([x['tag'] for x in sentence]) == set('O'):
+        if {x['tag'] for x in sentence} == set('O'):
             return
         [data.counts.update({x['token'].lower(): 1}) for x in sentence]
         [data.tagged_counts.update({x['token'].lower(): 1}) for x in sentence if x['tag'] is not 'O']

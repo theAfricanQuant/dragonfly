@@ -17,13 +17,15 @@ class FileLister:
         self.reload()
 
     def reload(self):
-        pattern = '*' + self.file_ext
+        pattern = f'*{self.file_ext}'
         self.filenames = [x for x in glob.glob(os.path.join(self.path, pattern)) if os.path.isfile(x)]
         self.filenames = sorted(self.filenames)
         # filenames gets updated for recommendations so we cache the original list
         self.original_filenames = self.filenames
         if self.size() == 0:
-            raise ValueError("No files for directory {} with extension {}".format(self.path, self.file_ext))
+            raise ValueError(
+                f"No files for directory {self.path} with extension {self.file_ext}"
+            )
 
     def in_directory(self, filename):
         # Is this a filename in the directory?
@@ -32,16 +34,12 @@ class FileLister:
         return result
 
     def get_filename(self, index):
-        if index < len(self.filenames):
-            return self.filenames[index]
-        return None
+        return self.filenames[index] if index < len(self.filenames) else None
 
     def get_index_from_filename(self, filename):
         if filename in self.filenames:
             return self.filenames.index(filename)
-        # also check if filename is basename
-        path = self.get_path(filename)
-        if path:
+        if path := self.get_path(filename):
             return self.filenames.index(path)
         return None
 
@@ -69,11 +67,9 @@ class AnnotationLoader:
 
     def get(self, filename):
         filename = os.path.basename(filename)
-        annotation_filename = filename + '.anno'
+        annotation_filename = f'{filename}.anno'
         path = os.path.join(self.base, annotation_filename)
-        if os.path.isfile(path):
-            return path
-        return None
+        return path if os.path.isfile(path) else None
 
 
 class EnglishTranslationLoader:
@@ -82,11 +78,11 @@ class EnglishTranslationLoader:
 
     def get(self, filename):
         filename = os.path.basename(filename)
-        translation_filename = filename + '.eng'
+        translation_filename = f'{filename}.eng'
         path = os.path.join(self.base, translation_filename)
         if os.path.isfile(path):
             with open(path, 'r', encoding='utf8') as ifp:
-                return [x for x in ifp]
+                return list(ifp)
 
 
 class Document:
@@ -136,7 +132,9 @@ class Document:
         first_word_doc = self.sentences[0].rows[Document.TOKENS].strings[0]
         first_word_anno = annotations[0].rows[Document.TOKENS].strings[0]
         if first_word_doc != first_word_anno:
-            raise ValueError("Input file and annotations do not match: {} != {}".format(first_word_doc, first_word_anno))
+            raise ValueError(
+                f"Input file and annotations do not match: {first_word_doc} != {first_word_anno}"
+            )
 
     def _set_annotations(self, annotations):
         for index, sentence in enumerate(self.sentences):
@@ -157,7 +155,7 @@ class Document:
         return total
 
     def __repr__(self):
-        return "<Document ({}): {}>".format(self.filename, self.sentences)
+        return f"<Document ({self.filename}): {self.sentences}>"
 
 
 class Sentence:
@@ -192,17 +190,14 @@ class Sentence:
         self.rows.insert(Sentence.TOKEN + 1, row)
 
     def convert_row_to_suggestions(self, label):
-        suggestion_row = None
-        for row in self.rows:
-            if row.label.lower() == label.lower():
-                suggestion_row = row
-                break
-        if suggestion_row:
+        if suggestion_row := next(
+            (row for row in self.rows if row.label.lower() == label.lower()), None
+        ):
             self.rows[Sentence.TOKEN].set_suggestions(suggestion_row.strings)
             self.rows.remove(suggestion_row)
 
     def __repr__(self):
-        return "<Sentence {}: {}>".format(self.index, self.rows)
+        return f"<Sentence {self.index}: {self.rows}>"
 
 
 class SentenceRow:
@@ -238,7 +233,7 @@ class SentenceRow:
         return len(self.strings)
 
     def __repr__(self):
-        return "<Row {} ({}): {}>".format(self.index, self.label, self.strings)
+        return f"<Row {self.index} ({self.label}): {self.strings}>"
 
 
 class InputReader:
@@ -265,7 +260,7 @@ class InputReader:
             try:
                 first_row = next(reader)
             except StopIteration:
-                raise ValueError("{} is an empty file".format(self.filename))
+                raise ValueError(f"{self.filename} is an empty file")
             self.num_rows = len(first_row)
             has_header = self._is_header(first_row)
             self.row_labels = self._create_row_labels(first_row, has_header)
@@ -301,10 +296,7 @@ class InputReader:
         if use_values:
             return [label.strip() for label in row]
         else:
-            labels = []
-            for index, value in enumerate(row, 1):
-                labels.append('row {}'.format(index))
-            return labels
+            return [f'row {index}' for index, value in enumerate(row, 1)]
 
     def _process_sentence(self, data):
         sentence = Sentence(len(self.sentences))
@@ -328,6 +320,6 @@ class OutputWriter:
         with open(filename, 'w', encoding='utf8') as fp:
             for token in data['tokens']:
                 if token:
-                    fp.write('{}\t{}\n'.format(token['token'], token['tag']))
+                    fp.write(f"{token['token']}\t{token['tag']}\n")
                 else:
                     fp.write('\n')

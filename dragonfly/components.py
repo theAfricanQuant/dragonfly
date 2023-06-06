@@ -20,10 +20,11 @@ class Hints:
         if os.path.exists(self.filename):
             with open(self.filename, 'r', encoding='utf8') as fp:
                 reader = csv.reader(fp, delimiter='\t', quoting=csv.QUOTE_NONE)
-                for row in reader:
-                    # protect against malformed hints by checking format
-                    if len(row) == 2:
-                        hints.append({'regex': row[0], 'comment': row[1]})
+                hints.extend(
+                    {'regex': row[0], 'comment': row[1]}
+                    for row in reader
+                    if len(row) == 2
+                )
         return hints
 
     def load_raw(self):
@@ -85,8 +86,7 @@ class SentenceMarkerManager:
     def toggle(self, document, sentence):
         sentence = int(sentence)
         if document not in self.markers:
-            self.markers[document] = []
-            self.markers[document].append(sentence)
+            self.markers[document] = [sentence]
         elif sentence not in self.markers[document]:
             self.markers[document].append(sentence)
         else:
@@ -94,9 +94,7 @@ class SentenceMarkerManager:
         self._save(self.path, self.markers)
 
     def get(self, document):
-        markers = []
-        if document in self.markers:
-            markers = self.markers[document]
+        markers = self.markers[document] if document in self.markers else []
         return markers
 
     @staticmethod
@@ -139,7 +137,7 @@ class StopWords:
                     # sentence separator
                     if len(row) < 1:
                         continue
-                    counts.update({row[self.TOKEN_INDEX].lower(), 1})
+                    counts |= {row[self.TOKEN_INDEX].lower(), 1}
         self.words = {x[0] for x in counts.most_common(size)}
 
     def _load(self):
@@ -255,11 +253,11 @@ class Stats:
 
     @property
     def num_entities(self):
-        return sum([s.num_entities for s in self.entities.values()])
+        return sum(s.num_entities for s in self.entities.values())
 
     @property
     def num_unique_entities(self):
-        return sum([len(s.entities) for s in self.entities.values()])
+        return sum(len(s.entities) for s in self.entities.values())
 
     @staticmethod
     def get_type(rows):

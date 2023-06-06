@@ -71,9 +71,9 @@ class Runner:
 
     def _process_args(self, args):
         if not os.path.exists(args.data):
-            raise RuntimeError("{} does not exist".format(args.data))
+            raise RuntimeError(f"{args.data} does not exist")
         if not os.path.isdir(args.data):
-            raise RuntimeError("{} is not a directory".format(args.data))
+            raise RuntimeError(f"{args.data} is not a directory")
 
         if not args.output:
             args.output = os.path.join(args.data, 'annotations')
@@ -101,7 +101,7 @@ class Runner:
 
         for anno_dir in args.annotations:
             if not os.path.exists(anno_dir):
-                raise RuntimeError("directory {} does not exist".format(anno_dir))
+                raise RuntimeError(f"directory {anno_dir} does not exist")
 
     def _prepare_app(self, args):
         app.config['dragonfly.lang'] = args.lang.lower()
@@ -122,7 +122,7 @@ class Runner:
         if args.prefix:
             prefix = args.prefix
             if prefix[0] != '/':
-                prefix = '/' + prefix
+                prefix = f'/{prefix}'
             app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix=prefix)
 
         # make a global .dragonfly metadata directory for storing settings and dictionaries
@@ -180,15 +180,15 @@ class Runner:
     @staticmethod
     def _calc_column_width(rows, index, max_column_width):
         token_length = len(rows[0].strings[index])
-        widest_value = max([len(x.strings[index]) for x in rows])
+        widest_value = max(len(x.strings[index]) for x in rows)
         return min([int(3 * token_length), max_column_width])
 
     def _run(self, args):
         if self.cmd == self.ANNOTATE:
-            print(" * Annotating {}".format(args.data))
+            print(f" * Annotating {args.data}")
             app.logger.info("Running annotate command")
         else:
-            print(" * Adjudicating {}".format(args.data))
+            print(f" * Adjudicating {args.data}")
             app.logger.info("Running adjudicate command")
         app.logger.info('Loading from %s and saving to %s', args.data, args.output)
         if args.debug:

@@ -47,18 +47,15 @@ def view(filename):
         attacher = AdjudicateAttacher(app.config.get('dragonfly.annotation_dirs'))
     dr = DocumentRenderer(attacher, modes)
     file_index = flask.request.args.get('index')
-    content = dr.render(app, filename, file_index)
-    if not content:
+    if content := dr.render(app, filename, file_index):
+        return content
+    else:
         return flask.render_template('404.html', title="Error", modes=[]), 404
-    return content
 
 
 @app.route('/save', methods=['POST'])
 def save():
-    data = flask.request.form['json']
-    if not data:
-        results = {'success': False, 'message': 'The server did not receive any data.'}
-    else:
+    if data := flask.request.form['json']:
         annotations = json.loads(data)
         lister = app.config.get('dragonfly.input')
         if lister.in_directory(annotations['filename']):
@@ -68,6 +65,8 @@ def save():
             results = {'success': True, 'message': 'Annotations saved.'}
         else:
             results = {'success': False, 'message': 'Wrong document for this server.'}
+    else:
+        results = {'success': False, 'message': 'The server did not receive any data.'}
     return flask.jsonify(results)
 
 
@@ -99,7 +98,7 @@ def get_translations(lang):
 
 @app.route('/translations/export/<lang>')
 def export_translations(lang):
-    filename = lang + '.json'
+    filename = f'{lang}.json'
     file = app.locator.translation_manager.get_filename(lang)
     if not os.path.exists(file):
         file = io.BytesIO(b'{}')
@@ -114,7 +113,7 @@ def import_translations(lang):
     try:
         trans_dict = json.loads(data)
         num_new_items = app.locator.translation_manager.import_json(lang, trans_dict)
-        results = {'success': True, 'message': '{} items added'.format(num_new_items)}
+        results = {'success': True, 'message': f'{num_new_items} items added'}
         app.logger.info('Imported %s for %s', file.filename, lang)
     except json.JSONDecodeError:
         results = {'success': False, 'message': 'Unrecognized format'}
@@ -182,7 +181,9 @@ def search_phrases():
     term = flask.request.form['term']
     results = app.locator.phrases_search.retrieve(term)
     for result in results:
-        result['il'] = result['il'].replace(term, '<span class="df-result-highlight">' + term + '</span>')
+        result['il'] = result['il'].replace(
+            term, f'<span class="df-result-highlight">{term}</span>'
+        )
     app.logger.info('Returned %d results from phrases search for %s', len(results), term)
     return flask.render_template('search/phrases.html', results=results)
 
@@ -201,10 +202,9 @@ def import_phrases():
 def hints():
     if flask.request.method == 'GET':
         return flask.jsonify(app.locator.hints.load())
-    else:
-        app.locator.hints.save(flask.request.form['hints'])
-        results = {'success': True, 'message': 'Hints saved. Page must be reloaded to take affect.'}
-        return flask.jsonify(results)
+    app.locator.hints.save(flask.request.form['hints'])
+    results = {'success': True, 'message': 'Hints saved. Page must be reloaded to take affect.'}
+    return flask.jsonify(results)
 
 
 @app.route('/marker', methods=['POST'])
@@ -262,7 +262,7 @@ def build_recommendations():
     name = flask.request.form['name']
     config = RecommendConfig(flask.request.form)
     app.locator.recommender.build(name, config)
-    results = {'success': True, 'message': '{} recommendation built'.format(name)}
+    results = {'success': True, 'message': f'{name} recommendation built'}
     app.logger.info('Completed building recommendations for %s', name)
     return flask.jsonify(results)
 
@@ -290,8 +290,7 @@ def word_cloud(doc):
         if word.lower() in user_trans:
             word = user_trans[word.lower()][0]
         elif dict_search.available:
-            results = dict_search.retrieve(word, 0)
-            if results:
+            if results := dict_search.retrieve(word, 0):
                 word = results[0][1]
         words.append({'text': word, 'weight': tfidf})
     return flask.jsonify(words)

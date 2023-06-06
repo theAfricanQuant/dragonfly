@@ -35,7 +35,7 @@ class InvertedIndexTest(unittest.TestCase):
         results = index.retrieve('hello')
         self.assertEqual(2, results['count'])
         self.assertEqual({'hello'}, results['terms'])
-        self.assertEqual({'doc1', 'doc2'}, set([x['doc'] for x in results['refs']]))
+        self.assertEqual({'doc1', 'doc2'}, {x['doc'] for x in results['refs']})
         self.assertIsNone(results['refs'][0]['trans'])
 
     def test_retrieve_with_case(self):
@@ -54,7 +54,7 @@ class InvertedIndexTest(unittest.TestCase):
         results = index.retrieve('mary*', True)
         self.assertEqual(2, results['count'])
         self.assertEqual({'mary', 'maryland'}, results['terms'])
-        self.assertEqual({'doc1', 'doc2'}, set([x['doc'] for x in results['refs']]))
+        self.assertEqual({'doc1', 'doc2'}, {x['doc'] for x in results['refs']})
 
 
 class DocumentStatsTest(unittest.TestCase):

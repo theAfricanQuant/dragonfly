@@ -28,19 +28,19 @@ parser.add_argument("-v", "--verbose", help="verbose output", action='store_true
 args = parser.parse_args()
 
 if not os.path.exists(args.input):
-    sys.exit("Error: {} does not exist".format(args.input))
+    sys.exit(f"Error: {args.input} does not exist")
 
 stats = dragonfly.stats.Stats()
 stats.collect(args.input)
 
-print("{} Documents".format(stats.num_files))
-print("{} Tokens".format(stats.num_tokens))
-print("{} Tagged Tokens".format(stats.num_tagged_tokens))
-print("{} Entity Tags".format(stats.num_entities))
-print("{} Unique Entity Tags".format(stats.num_unique_entities))
+print(f"{stats.num_files} Documents")
+print(f"{stats.num_tokens} Tokens")
+print(f"{stats.num_tagged_tokens} Tagged Tokens")
+print(f"{stats.num_entities} Entity Tags")
+print(f"{stats.num_unique_entities} Unique Entity Tags")
 for s in stats.entities.values():
-    print("{}: {} Entities".format(s.type, s.num_entities))
-    print("{}: {} Unique Entities".format(s.type, len(s.entities)))
+    print(f"{s.type}: {s.num_entities} Entities")
+    print(f"{s.type}: {len(s.entities)} Unique Entities")
 if args.verbose:
     print("---------------------------------")
     for s in stats.entities.values():
@@ -48,4 +48,4 @@ if args.verbose:
         print(s.type)
         print("-------------------")
         for name, count in s.entities.most_common(len(s.entities)):
-            print("{}\t{}".format(name, count))
+            print(f"{name}\t{count}")
